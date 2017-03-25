@@ -25,8 +25,8 @@ def iter_objects(json_in):
       # get input from user about label
       not_sure = False
       user_input, val = "", ""
-      while user_input not in 'nado' or not not_sure:
-        user_input = input("enter label for sample ('n' 'a' 'd' or 'o'): ")
+      while user_input not in 'nadou' or not not_sure:
+        user_input = input("enter label for sample ('n' 'a' 'd' 'u' or 'o'): ")
         if user_input == 'n':
           val = 'neither'
         elif user_input == 'a':
@@ -35,6 +35,8 @@ def iter_objects(json_in):
           val = 'disagree'
         elif user_input == 'o':
           val = 'other'
+        elif user_input =='u':
+          val = 'unrelated'
         not_sure = bool(input('Is this value correct? true/empty ' + str(val)))
       element['label'] = val
     write_json('temp_label.json', json_in)
