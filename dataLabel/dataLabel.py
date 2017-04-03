@@ -15,7 +15,6 @@ def write_json(fileName, obj):
 def iter_objects(json_in):
   # Too many to do this
   # write_json('temp_label_redo.json', json_in)
-  labelled_json = {'tweets': []}
   for element in json_in['tweets']:
     try:
       val = element['label']
@@ -44,9 +43,8 @@ def iter_objects(json_in):
           val = "z"
         else:
           element['label'] = val
-    labelled_json['tweets'].append(element)
-    write_json('temp_label_redo.json', labelled_json)
-  write_json('all_label.json', labelled_json)
+    write_json('temp_label_redo.json', json_in)
+  write_json('all_label.json', json_in)
 
 
 def main():
