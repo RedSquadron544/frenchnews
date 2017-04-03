@@ -13,15 +13,17 @@ def write_json(fileName, obj):
     json.dump(obj, fileOut)
 
 def iter_objects(json_in):
-  write_json('temp_label.json', json_in)
-  for element in json_in['posts']:
+  # Too many to do this
+  # write_json('temp_label_redo.json', json_in)
+  labelled_json = {'tweets': []}
+  for element in json_in['tweets']:
     try:
       val = element['label']
     except KeyError:
       # then we want to label this article
       print('=========================================')
       print(element['text'])
-      print("+++++++++++++++++++++++++++++++++++++++++\n", element['title'],)
+      print("+++++++++++++++++++++++++++++++++++++++++\n", "No. of Retweets: ", element['retweets'],)
       # get input from user about label
       not_sure = False
       user_input, val = "", ""
@@ -38,9 +40,13 @@ def iter_objects(json_in):
         elif user_input =='u':
           val = 'unrelated'
         not_sure = bool(input('Is this value correct? true/empty ' + str(val)))
-      element['label'] = val
-    write_json('temp_label.json', json_in)
-  write_json('all_label.json', json_in)
+        if not_sure == False:
+          val = "z"
+        else:
+          element['label'] = val
+    labelled_json['tweets'].append(element)
+    write_json('temp_label_redo.json', labelled_json)
+  write_json('all_label.json', labelled_json)
 
 
 def main():
