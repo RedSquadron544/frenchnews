@@ -2,6 +2,7 @@
 simply calculates probability of occurance of each word in a class
 then calculates the probability sum of each class
 """
+
 import sys
 import json
 from collections import defaultdict

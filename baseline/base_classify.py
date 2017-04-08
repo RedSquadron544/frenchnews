@@ -2,6 +2,7 @@
 Build classifier that takes the model and unlabeled data
 Produces json file with
 """
+
 import json
 import sys
 from math import log
