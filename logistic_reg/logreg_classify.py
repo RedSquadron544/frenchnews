@@ -1,10 +1,9 @@
 """
-Train Multinomial Logistic Regression Classifier for Stance Detection
+Tokenize the data from the logistic regession classifier
 """
 import json
 import sys
 import pickle
-import numpy as np
 from sklearn.linear_model import LogisticRegression
 from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
@@ -24,6 +23,17 @@ def read_file(filename):
             print("UNABLE TO LOAD JSON")
             data = {}
     return data
+
+
+def read_model():
+    """
+    Write pickle file with model
+    :param mode:
+    :return:
+    """
+    with open("logreg_model.pickle", "rb") as f:
+        model = pickle.load(f)
+    return model
 
 
 def tokenize(raw_data):
@@ -56,36 +66,37 @@ def compute_sim(tknzd_data, modelfile):
     return tknzd_data
 
 
-def train_logit_reg(tknzd_data):
+def predict(model, data):
     """
-    Train the logistic regression model on tokenized data
-    :param tknzd_data:
-    :return:
-    """
-    x_data, y_data = [], []
-    logreg = LogisticRegression(C=1e5)
-    for _, el in enumerate(tknzd_data):
-        x_data.append(el['similarity'])
-        y_data.append(el['label'])
-    x_array = np.array(x_data)
-    y_array = np.array(y_data)
-    logreg.fit(x_array, y_array)
-    return logreg
-
-
-def write_model(model):
-    """
-    Write pickle file with model
+    Perform prediction
     :param mode:
+    :param data:
     :return:
     """
-    with open("logreg_model.pickle", "wb") as f:
-        pickle.dump(model, f)
+    x_data = []
+    for _, el in data['tweets']:
+        x_data.append(el['similarity'])
+    x_array = np.array(x_data)
+    y_array = model.predict(x_array)
+    for el, y in zip(data['tweets'], y_array):
+        el["label"] = y
+    return data
+
+
+def writeOutput(results):
+  """
+  Writes the results of the classification back to a file (id, gen/fake, pos/neg)
+  :param results: dict
+  :return: NONE
+  """
+  with open("base_output.json", "w", encoding='utf-8') as f:
+    json.dump(results, f)
 
 
 if __name__ == "__main__":
     raw_data = read_file(sys.argv[1])
+    model = read_model()
     tknzd_data = tokenize(raw_data)
     cmp_data = compute_sim(tknzd_data, sys.argv[2])
-    model = train_logit_reg(cmp_data)
-    write_model(model)
+    labeled_data = predict(model, tknzd_data)
+    writeOutput(labeled_data)
