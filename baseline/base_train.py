@@ -58,6 +58,7 @@ def write_model(calc_json):
   with open("base_model.json", "w", encoding='utf-8')as f:
     json.dump(calc_json, f)
 
+
 def main():
   data = read_file(sys.argv[1])
   tweet_nums, tweet_probs = calc_prob(data)

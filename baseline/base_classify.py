@@ -60,6 +60,7 @@ def writeOutput(results):
   with open("base_output.json", "w", encoding='utf-8') as f:
     json.dump(results, f)
 
+
 def main():
   model = read_file("base_model.json")
   unlabel_data = read_file(sys.argv[1])
