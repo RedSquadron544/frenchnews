@@ -4,6 +4,7 @@ Tokenize the data from the logistic regession classifier
 import json
 import sys
 import pickle
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
@@ -60,9 +61,26 @@ def compute_sim(tknzd_data, modelfile):
     :return:
     """
     model = KeyedVectors.load_word2vec_format(modelfile, binary=True)
-    for ix, el in tknzd_data['tweets']:
+    for ix, el in enumerate(tknzd_data['tweets']):
         #TODO alignment of vectors
-        el["similarity"] = model.n_similarity(el["text tokens"], el["topic tokens"])
+        temp_test = []
+        for word in el["text tokens"]:
+            try:
+                model[word]
+                temp_test.append(word)
+            except KeyError:
+                continue
+        temp_topic = []
+        for word in el["topic tokens"]:
+            try:
+                model[word]
+                temp_topic.append(word)
+            except KeyError:
+                continue
+        try:
+            el["similarity"] = model.n_similarity(temp_test, temp_topic)
+        except ZeroDivisionError:
+            el["similarity"] = 0.5
     return tknzd_data
 
 
@@ -74,10 +92,10 @@ def predict(model, data):
     :return:
     """
     x_data = []
-    for _, el in data['tweets']:
+    for _, el in enumerate(data['tweets']):
         x_data.append(el['similarity'])
     x_array = np.array(x_data)
-    y_array = model.predict(x_array)
+    y_array = model.predict(x_array.reshape(len(x_data), 1))
     for el, y in zip(data['tweets'], y_array):
         el["label"] = y
     return data

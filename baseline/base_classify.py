@@ -42,7 +42,7 @@ def calc_calss(model, unlabel_data):
         for ix, label in enumerate(label_keys):
           try:
             prob = model['probabilities'][word]
-          except ValueError:
+          except (ValueError, KeyError) as err:
             #approx laplace smoothing
             prob = 1/model['counts'][label]
           temp_probs[ix] += log(prob)

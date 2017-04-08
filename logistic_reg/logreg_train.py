@@ -50,9 +50,26 @@ def compute_sim(tknzd_data, modelfile):
     :return:
     """
     model = KeyedVectors.load_word2vec_format(modelfile, binary=True)
-    for ix, el in tknzd_data['tweets']:
+    for ix, el in enumerate(tknzd_data['tweets']):
         #TODO alignment of vectors
-        el["similarity"] = model.n_similarity(el["text tokens"], el["topic tokens"])
+        temp_test = []
+        for word in el["text tokens"]:
+            try:
+                model[word]
+                temp_test.append(word)
+            except KeyError:
+                continue
+        temp_topic = []
+        for word in el["topic tokens"]:
+            try:
+                model[word]
+                temp_topic.append(word)
+            except KeyError:
+                continue
+        try:
+            el["similarity"] = model.n_similarity(temp_test, temp_topic)
+        except ZeroDivisionError:
+            el["similarity"] = 0.5
     return tknzd_data
 
 
@@ -64,12 +81,12 @@ def train_logit_reg(tknzd_data):
     """
     x_data, y_data = [], []
     logreg = LogisticRegression(C=1e5)
-    for _, el in enumerate(tknzd_data):
+    for _, el in enumerate(tknzd_data["tweets"]):
         x_data.append(el['similarity'])
         y_data.append(el['label'])
     x_array = np.array(x_data)
     y_array = np.array(y_data)
-    logreg.fit(x_array, y_array)
+    logreg.fit(x_array.reshape(len(x_data), 1), y_array)
     return logreg
 
 
