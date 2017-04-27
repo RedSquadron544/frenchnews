@@ -15,7 +15,7 @@ class MySentences(object):
 if __name__ == '__main__':
 	logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 	sentences = MySentences('./data') # a memory-friendly iterator
-	model = gensim.models.Word2Vec(sentences)		
+	model = gensim.models.Word2Vec(sentences, min_count=2, size=700, window=4)
 	model.save('/tmp/word2vec.model')
 	model.wv.save_word2vec_format('/tmp/word2vec.model.bin', binary=True)
 	print(model)
