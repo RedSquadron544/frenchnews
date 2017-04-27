@@ -65,13 +65,6 @@ def write_model(calc_json):
   with open("base_model.json", "w", encoding='utf-8')as f:
     json.dump(calc_json, f)
 
-#
-# def main():
-#   data = read_file(sys.argv[1])
-#   tweet_nums, tweet_probs = calc_prob(data)
-#   model_data = {"counts": tweet_nums, "probabilities": tweet_probs}
-#   write_model(model_data)
-
 
 def calc_class(model, x_data):
   """
@@ -98,26 +91,9 @@ def calc_class(model, x_data):
             prob = 1/model['counts'][label]
           temp_probs[ix] += log(prob)
     det_class_ix = temp_probs.index(max(temp_probs))
-    np.append(results, [label_keys[det_class_ix]])
+    results = np.append(results, [label_keys[det_class_ix]])
   return results
 
-
-
-def writeOutput(results):
-  """
-  Writes the results of the classification back to a file (id, gen/fake, pos/neg)
-  :param results: dict
-  :return: NONE
-  """
-  with open("base_output.json", "w", encoding='utf-8') as f:
-    json.dump(results, f)
-
-
-# def main():
-#   model = read_file("base_model.json")
-#   unlabel_data = read_file(sys.argv[2])
-#   results = calc_calss(model, unlabel_data)
-#   writeOutput(results)
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
@@ -130,9 +106,9 @@ if __name__ == "__main__":
             model = calc_prob(x[train], y[train])
             results = calc_class(model, x[test])
             acc_s = accuracy_score(y[test], results)
-            prc_val = precision_score(y[test], results)
-            rcl_val = recall_score(y[test], results)
-            f_b = fbeta_score(y[test], results)
+            prc_val = precision_score(y[test], results, average='micro')
+            rcl_val = recall_score(y[test], results, average='micro')
+            f_b = fbeta_score(y[test], results, beta=1.0, average='micro')
             cv_scores.append(np.array([acc_s * 100, prc_val * 100, rcl_val * 100, f_b]))
             print("Accuracy: %.2f%%" % (acc_s * 100))
             print("Precision: %.2f%%" % (prc_val * 100))
