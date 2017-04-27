@@ -3,12 +3,13 @@ Train Multinomial Logistic Regression Classifier for Stance Detection
 """
 import json
 import sys
-import pickle
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
 from gensim.models import KeyedVectors
+from sklearn.model_selection import KFold
+from sklearn.metrics import accuracy_score, precision_score, recall_score, fbeta_score
 
 
 def read_file(filename):
@@ -26,85 +27,82 @@ def read_file(filename):
     return data
 
 
-def tokenize(raw_data):
+def tokenize(x_vals):
     """
     Tokenize the raw data for model training
-    :param raw_data: data from json file (IN JSON)
-    :return: updated with tokenized representations
+    :param x_vals: data minus labels (text, topic)
+    :param y_vals: labeels
+    :return:
     """
     tknzer = TweetTokenizer(preserve_case=False, strip_handles=True)
     stop_words = stopwords.words('french')
-    for _, el in enumerate(raw_data['tweets']):
-        #TODO does this strip urls???
-        text_tkns_temp = tknzer.tokenize(el['text'])
-        topic_tkns_temp = tknzer.tokenize(el['topic'])
-        el["text tokens"] = [x for x in text_tkns_temp if x not in stop_words]
-        el["topic tokens"] = [x for x in topic_tkns_temp if x not in stop_words]
-    return raw_data
+    return_tup = []
+    for _, el in enumerate(x_vals):
+        # Not always strip URL but omitted later on in code
+        text_tkns_temp = tknzer.tokenize(el[0])
+        topic_tkns_temp = tknzer.tokenize(el[1])
+        txt_tokens = [x for x in text_tkns_temp if x not in stop_words]
+        topic_tokens = [x for x in topic_tkns_temp if x not in stop_words]
+        return_tup.append((txt_tokens, topic_tokens))
+    return return_tup
 
 
 def compute_sim(tknzd_data, modelfile):
     """
     Compute the consine vector similarity between the topic and the text
-    :param tknzd_data:
+    :param tknzd_data: (text, topic)
+    :param labels: labels
+    :param modelfile: filepath to model file
     :return:
     """
     model = KeyedVectors.load_word2vec_format(modelfile, binary=True)
-    for ix, el in enumerate(tknzd_data['tweets']):
+    sim_scores = []
+    for ix, el in enumerate(tknzd_data):
         #TODO alignment of vectors
         temp_test = []
-        for word in el["text tokens"]:
+        for word in el[0]:
             try:
                 model[word]
                 temp_test.append(word)
             except KeyError:
                 continue
         temp_topic = []
-        for word in el["topic tokens"]:
+        for word in el[1]:
             try:
                 model[word]
                 temp_topic.append(word)
             except KeyError:
                 continue
         try:
-            el["similarity"] = model.n_similarity(temp_test, temp_topic)
+            sim_scores.append(model.n_similarity(temp_test, temp_topic))
         except ZeroDivisionError:
-            el["similarity"] = 0.5
-    return tknzd_data
+            sim_scores.append(0.5)
+    return sim_scores
 
 
-def train_logit_reg(tknzd_data):
+def train_logit_reg(x, y):
     """
     Train the logistic regression model on tokenized data
     :param tknzd_data:
     :return:
     """
-    x_data, y_data = [], []
     logreg = LogisticRegression(C=1e5)
-    for _, el in enumerate(tknzd_data["tweets"]):
-        x_data.append(el['similarity'])
-        y_data.append(el['label'])
-    x_array = np.array(x_data)
-    y_array = np.array(y_data)
-    logreg.fit(x_array.reshape(len(x_data), 1), y_array)
+    x_array = np.array(sim_scores_labeled)
+    y_array = np.array(y)
+    logreg.fit(x_array.reshape(len(sim_scores_labeled), 1), y_array)
     return logreg
 
 
-def predict(model, data):
+def predict(model, sim_scores):
     """
     Perform prediction
-    :param mode:
-    :param data:
+    :param model:
+    :param sim_scores:
     :return:
     """
-    x_data = []
-    for _, el in enumerate(data['tweets']):
-        x_data.append(el['similarity'])
-    x_array = np.array(x_data)
-    y_array = model.predict(x_array.reshape(len(x_data), 1))
-    for el, y in zip(data['tweets'], y_array):
-        el["label"] = y
-    return data
+    x_array = np.array(sim_scores)
+    y_array = model.predict(x_array.reshape(len(sim_scores), 1))
+    return y_array
 
 
 def writeOutput(results):
@@ -118,12 +116,38 @@ def writeOutput(results):
 
 
 if __name__ == "__main__":
-    raw_data = read_file(sys.argv[1])
-    tknzd_data = tokenize(raw_data)
-    cmp_data = compute_sim(tknzd_data, sys.argv[2])
-    model = train_logit_reg(cmp_data)
-    unlabeled_data = read_file(sys.argv[3])
-    tknzd_unlabel = tokenize(unlabeled_data)
-    cmp_data = compute_sim(tknzd_unlabel, sys.argv[2])
-    labeled_data = predict(model, tknzd_data)
-    writeOutput(labeled_data)
+    if len(sys.argv) == 3:
+        # correct input args
+        raw_data = read_file(sys.argv[1])
+        cv_scores = []
+        x = np.array([(x["text"], x["topic"]) for x in raw_data["tweets"]])
+        y = np.array([y["label"] for y in raw_data["tweets"]])
+        kfold = KFold(n_splits=10, shuffle=True)
+        for train, test in kfold.split(x, y):
+            # Train logit model
+            tkzd_labeled = tokenize(x[train])
+            sim_scores_labeled = compute_sim(tkzd_labeled, sys.argv[2])
+            logit_mod = train_logit_reg(sim_scores_labeled, y[train])
+            # Test logit model
+            tknzd_unlabel = tokenize(x[test])
+            sim_score_unlabeled = compute_sim(tknzd_unlabel, sys.argv[2])
+            predictions = predict(logit_mod, sim_score_unlabeled)
+            acc_s = accuracy_score(y[test], predictions)
+            prc_val = precision_score(y[test], predictions, average='micro')
+            rcl_val = recall_score(y[test], predictions, average='micro')
+            f_b = fbeta_score(y[test], predictions, beta=1.0, average='micro')
+            cv_scores.append(np.array([acc_s * 100, prc_val * 100, rcl_val * 100, f_b]))
+            print("Accuracy: %.2f%%" % (acc_s * 100))
+            print("Precision: %.2f%%" % (prc_val * 100))
+            print("Recall: %.2f%%" % (rcl_val * 100))
+            print("F1: %.2f" % (f_b,))
+            print("=====================")
+        avg = np.mean(cv_scores, axis=0)
+        std_dev = np.std(cv_scores, axis=0)
+        print('Overall:')
+        print('Accuracy: %.2f%% (+/- %.2f%%)' % (avg[0], std_dev[0]))
+        print('Precision: %.2f%% (+/- %.2f%%)' % (avg[1], std_dev[1]))
+        print('Recall: %.2f%% (+/- %.2f%%)' % (avg[2], std_dev[2]))
+        print('F1: %.2f (+/- %.2f)' % (avg[3], std_dev[3]))
+    else:
+        print("INVALID INPUT ARGS")
