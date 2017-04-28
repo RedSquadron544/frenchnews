@@ -87,9 +87,9 @@ def train_logit_reg(x, y):
     :return:
     """
     logreg = LogisticRegression(C=1e5)
-    x_array = np.array(sim_scores_labeled)
+    x_array = np.array(x)
     y_array = np.array(y)
-    logreg.fit(x_array.reshape(len(sim_scores_labeled), 1), y_array)
+    logreg.fit(x_array.reshape(len(x), 1), y_array)
     return logreg
 
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         cv_scores = []
         x = np.array([(x["text"], x["topic"]) for x in raw_data["tweets"]])
         y = np.array([y["label"] for y in raw_data["tweets"]])
-        kfold = KFold(n_splits=10, shuffle=True)
+        kfold = KFold(n_splits=4, shuffle=True)
         for train, test in kfold.split(x, y):
             # Train logit model
             tkzd_labeled = tokenize(x[train])

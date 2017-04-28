@@ -101,7 +101,7 @@ if __name__ == "__main__":
         data = read_file(sys.argv[1])
         x = np.array([x["text"] for x in data["tweets"]])
         y = np.array([y["label"] for y in data["tweets"]])
-        kfold = KFold(n_splits=10, shuffle=True)
+        kfold = KFold(n_splits=4, shuffle=True)
         for train, test in kfold.split(x, y):
             model = calc_prob(x[train], y[train])
             results = calc_class(model, x[test])
