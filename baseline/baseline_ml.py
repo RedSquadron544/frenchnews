@@ -79,17 +79,17 @@ def calc_class(model, x_data):
   tknzer = TweetTokenizer(preserve_case=False, strip_handles=True)
   for element in x_data:
     temp_tkns = tknzer.tokenize(element)
-    temp_probs = [0,0,0,0]
+    temp_probs = [0, 0, 0, 0]
     # iterate over all of the words
     for word in temp_tkns:
         #iterate over all possible labels
         for ix, label in enumerate(label_keys):
-          if word in model["probabilities"].keys():
-            prob = model['probabilities'][word]
+          if word in model["probabilities"][label].keys():
+            prob = model['probabilities'][label][word]
           else:
             #approx laplace smoothing
             prob = 1/1000
-          temp_probs[ix] += log(prob)
+          temp_probs[ix] += prob
     det_class_ix = temp_probs.index(max(temp_probs))
     results = np.append(results, [label_keys[det_class_ix]])
   return results
