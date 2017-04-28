@@ -88,7 +88,7 @@ def calc_class(model, x_data):
             prob = model['probabilities'][word]
           else:
             #approx laplace smoothing
-            prob = 1/model['counts'][label]
+            prob = 1/1000
           temp_probs[ix] += log(prob)
     det_class_ix = temp_probs.index(max(temp_probs))
     results = np.append(results, [label_keys[det_class_ix]])
